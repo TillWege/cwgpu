@@ -51,3 +51,39 @@ WGPUAdapter requestAdapter(WGPUInstance instance, WGPURequestAdapterOptions cons
 
 	return userData.adapter;
 }
+
+/**
+ * Utility function to get a WebGPU device, so that
+ *     WGPUAdapter device = requestDevice(adapter, options);
+ * is roughly equivalent to
+ *     const device = await adapter.requestDevice(descriptor);
+ * It is very similar to requestAdapter
+ */
+WGPUDevice requestDevice(WGPUAdapter adapter, WGPUDeviceDescriptor const * descriptor) {
+	struct UserData {
+		WGPUDevice device = nullptr;
+		bool requestEnded = false;
+	};
+	UserData userData;
+
+	auto onDeviceRequestEnded = [](WGPURequestDeviceStatus status, WGPUDevice device, char const * message, void * pUserData) {
+		UserData& userData = *reinterpret_cast<UserData*>(pUserData);
+		if (status == WGPURequestDeviceStatus_Success) {
+			userData.device = device;
+		} else {
+			std::cout << "Could not get WebGPU device: " << message << std::endl;
+		}
+		userData.requestEnded = true;
+	};
+
+	wgpuAdapterRequestDevice(
+		adapter,
+		descriptor,
+		onDeviceRequestEnded,
+		(void*)&userData
+	);
+
+	assert(userData.requestEnded);
+
+	return userData.device;
+}
