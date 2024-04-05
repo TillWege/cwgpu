@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.11)
 project(cwgpu)
 
 add_subdirectory(external/glfw)
-
+add_subdirectory(external/glfw3webgpu)
 
 file(GLOB sources CONFIGURE_DEPENDS
         "src/*.h" "src/*.cpp"
@@ -20,7 +20,7 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(webgpu)
 
-target_link_libraries(cwgpu PRIVATE glfw webgpu)
+target_link_libraries(cwgpu PRIVATE glfw webgpu glfw3webgpu)
 
 set_target_properties(cwgpu PROPERTIES
     CXX_STANDARD 17
