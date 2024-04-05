@@ -108,16 +108,26 @@ int main (int, char**) {
 	wgpuQueueSubmit(queue, 1, &command);
 	wgpuCommandBufferRelease(command);
 
-#ifdef WEBGPU_BACKEND_DAWN
-	wgpuCommandEncoderRelease(encoder);
-	wgpuCommandBufferRelease(command);
-#endif
+	// Setup SwapChain Descriptor
+	WGPUSwapChainDescriptor swapChainDesc = {};
+	swapChainDesc.nextInChain = nullptr;
+	swapChainDesc.width = 640;
+	swapChainDesc.height = 480;
 
+	WGPUTextureFormat swapChainFormat = wgpuSurfaceGetPreferredFormat(surface, adapter);
+	swapChainDesc.format = swapChainFormat;
+	swapChainDesc.usage = WGPUTextureUsage_RenderAttachment;
+	swapChainDesc.presentMode = WGPUPresentMode_Fifo;
+
+	// Create SwapChain
+	WGPUSwapChain swapChain = wgpuDeviceCreateSwapChain(device, surface, &swapChainDesc);
+	std::cout << "Swapchain: " << swapChain << std::endl;
 
 	while (!glfwWindowShouldClose(window)) {
 		glfwPollEvents();
 	}
 
+	wgpuSwapChainRelease(swapChain);
 	wgpuQueueRelease(queue);
 	wgpuDeviceRelease(device);
 	wgpuAdapterRelease(adapter);
