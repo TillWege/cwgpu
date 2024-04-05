@@ -2,14 +2,20 @@ cmake_minimum_required(VERSION 3.11)
 project(cwgpu)
 
 add_subdirectory(external/glfw)
-add_executable(cwgpu src/main.cpp)
+
+
+file(GLOB sources CONFIGURE_DEPENDS
+        "src/*.h" "src/*.cpp"
+)
+
+add_executable(cwgpu ${sources})
 
 
 include(FetchContent)
 FetchContent_Declare(
         webgpu
         GIT_REPOSITORY https://github.com/eliemichel/WebGPU-distribution
-        GIT_TAG        dawn
+        GIT_TAG        main
 )
 
 FetchContent_MakeAvailable(webgpu)

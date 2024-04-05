@@ -1,6 +1,6 @@
 #include <iostream>
 #include <GLFW/glfw3.h>
-#include <webgpu/webgpu.h>
+#include "wgpu_utils.h"
 
 int main (int, char**) {
 	WGPUInstanceDescriptor desc = {};
@@ -27,10 +27,18 @@ int main (int, char**) {
 		return 1;
 	}
 
+	std::cout << "Requesting adapter..." << std::endl;
+
+	WGPURequestAdapterOptions adapterOpts = {};
+	WGPUAdapter adapter = requestAdapter(instance, &adapterOpts);
+
+	std::cout << "Got adapter: " << adapter << std::endl;
+
 	while (!glfwWindowShouldClose(window)) {
 		glfwPollEvents();
 	}
-
+	
+	wgpuAdapterRelease(adapter);
 	wgpuInstanceRelease(instance);
 
 	glfwDestroyWindow(window);
