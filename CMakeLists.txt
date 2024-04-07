@@ -4,8 +4,13 @@ project(cwgpu)
 add_subdirectory(external/glfw)
 add_subdirectory(external/glfw3webgpu)
 
+include_directories("external/imgui" "external/imgui/backends")
+
 file(GLOB sources CONFIGURE_DEPENDS
         "src/*.h" "src/*.cpp"
+        "external/imgui/*.h" "external/imgui/*.cpp"
+        "external/imgui/backends/imgui_impl_wgpu.cpp" "external/imgui/backends/imgui_impl_wgpu.h"
+        "external/imgui/backends/imgui_impl_glfw.cpp" "external/imgui/backends/imgui_impl_glfw.h"
 )
 
 add_executable(cwgpu ${sources})

@@ -3,6 +3,9 @@
 #include "wgpu_utils.h"
 #include <glfw3webgpu.h>
 #include <vector>
+#include "imgui.h"
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_wgpu.h"
 
 int main (int, char**) {
 	WGPUInstanceDescriptor desc = {};
@@ -23,7 +26,7 @@ int main (int, char**) {
 	}
 
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-	GLFWwindow* window = glfwCreateWindow(640, 480, "CWGPU", nullptr, nullptr);
+	GLFWwindow* window = glfwCreateWindow(1280, 720, "CWGPU", nullptr, nullptr);
 	if (!window) {
 		std::cerr << "Could not open window!" << std::endl;
 		glfwTerminate();
@@ -115,8 +118,8 @@ int main (int, char**) {
 	// Setup SwapChain Descriptor
 	WGPUSwapChainDescriptor swapChainDesc = {};
 	swapChainDesc.nextInChain = nullptr;
-	swapChainDesc.width = 640;
-	swapChainDesc.height = 480;
+	swapChainDesc.width = 1280;
+	swapChainDesc.height = 720;
 
 	WGPUTextureFormat swapChainFormat = wgpuSurfaceGetPreferredFormat(surface, adapter);
 	swapChainDesc.format = swapChainFormat;
@@ -130,6 +133,23 @@ int main (int, char**) {
 	float r = 0.0f;
 	float g = 0.0f;
 	float b = 0.0f;
+
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+
+    ImGuiIO& io = ImGui::GetIO();
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+
+
+    ImGui_ImplGlfw_InitForOther(window, true);
+    ImGui_ImplWGPU_InitInfo info = {};
+
+    info.Device = device;
+    info.RenderTargetFormat = swapChainFormat;
+    info.DepthStencilFormat = WGPUTextureFormat_Undefined;
+
+    ImGui_ImplWGPU_Init(&info);
+
 
 	while (!glfwWindowShouldClose(window)) {
 		glfwPollEvents();
@@ -182,6 +202,16 @@ int main (int, char**) {
 
 		// Submit Render Pass
 		WGPURenderPassEncoder renderPass = wgpuCommandEncoderBeginRenderPass(encoder, &renderPassDesc);
+
+        ImGui_ImplGlfw_NewFrame();
+        ImGui_ImplWGPU_NewFrame();
+        ImGui::NewFrame();
+        ImGui::SetWindowSize(ImVec2(500, 300));
+        ImGui::ShowDemoWindow(); // Show demo window! :)
+
+        ImGui::Render();
+        ImGui_ImplWGPU_RenderDrawData(ImGui::GetDrawData(), renderPass);
+
 		wgpuRenderPassEncoderEnd(renderPass);
 		wgpuRenderPassEncoderRelease(renderPass);
 
@@ -198,6 +228,9 @@ int main (int, char**) {
 		wgpuTextureViewRelease(nextTexture);
 		wgpuSwapChainPresent(swapChain);
 	}
+
+    ImGui_ImplWGPU_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
 
 
 	wgpuSwapChainRelease(swapChain);
