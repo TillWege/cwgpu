@@ -150,6 +150,112 @@ int main (int, char**) {
 
     ImGui_ImplWGPU_Init(&info);
 
+    // Setup shaders for Pipeline
+    const char* shaderSource = R"(
+    @vertex
+    fn vs_main(@builtin(vertex_index) in_vertex_index: u32) -> @builtin(position) vec4f {
+        var p = vec2f(0.0, 0.0);
+        if (in_vertex_index == 0u) {
+            p = vec2f(-0.5, -0.5);
+        } else if (in_vertex_index == 1u) {
+            p = vec2f(0.5, -0.5);
+        } else if (in_vertex_index == 2u) {
+            p = vec2f(-0.5, 0.5);
+        } else if (in_vertex_index == 3u) {
+            p = vec2f(0.5, 0.5);
+        } else if (in_vertex_index == 4u) {
+            p = vec2f(0.5, -0.5);
+        } else if (in_vertex_index == 5u) {
+            p = vec2f(-0.5, 0.5);
+        }
+        return vec4f(p, 0.0, 1.0);
+    }
+
+    @fragment
+    fn fs_main() -> @location(0) vec4f {
+        return vec4f(0.0, 0.4, 1.0, 1.0);
+    }
+    )";
+
+    WGPUShaderModuleDescriptor shaderModuleDescriptor = {};
+
+#ifdef WEBGPU_BACKEND_WGPU
+    shaderModuleDescriptor.hintCount = 0;
+    shaderModuleDescriptor.hints = nullptr;
+#endif
+
+    // Setup WGSL Chain
+    WGPUShaderModuleWGSLDescriptor shaderModuleWgslDescriptor = {};
+    shaderModuleWgslDescriptor.chain.next = nullptr;
+    shaderModuleWgslDescriptor.chain.sType = WGPUSType_ShaderModuleWGSLDescriptor;
+    shaderModuleWgslDescriptor.code = shaderSource;
+
+    shaderModuleDescriptor.nextInChain = &shaderModuleWgslDescriptor.chain;
+
+    WGPUShaderModule shaderModule = wgpuDeviceCreateShaderModule(device, &shaderModuleDescriptor);
+
+    // Setup Pipeline Descriptor
+    WGPURenderPipelineDescriptor pipelineDescriptor = {};
+
+    pipelineDescriptor.nextInChain = nullptr;
+
+    // vertex fetch shader settings
+    pipelineDescriptor.vertex.bufferCount = 0;
+    pipelineDescriptor.vertex.buffers = nullptr;
+
+    // vertex shader settings
+    pipelineDescriptor.vertex.module = shaderModule;
+    pipelineDescriptor.vertex.entryPoint = "vs_main";
+    pipelineDescriptor.vertex.constantCount = 0;
+    pipelineDescriptor.vertex.constants = nullptr;
+
+    // primitive shader settings
+    pipelineDescriptor.primitive.topology = WGPUPrimitiveTopology_TriangleList;
+    pipelineDescriptor.primitive.stripIndexFormat = WGPUIndexFormat_Undefined;
+    pipelineDescriptor.primitive.frontFace = WGPUFrontFace_CCW;
+    pipelineDescriptor.primitive.cullMode = WGPUCullMode_None;
+
+    // fragment shader settings
+    WGPUFragmentState fragmentState = {};
+    fragmentState.module = shaderModule;
+    fragmentState.entryPoint = "fs_main";
+    fragmentState.constants = nullptr;
+    fragmentState.constantCount = 0;
+    fragmentState.targetCount = 1;
+
+    // setup blend-state
+    WGPUBlendState blendState = {};
+    // RGB Settings
+    blendState.color.srcFactor = WGPUBlendFactor_SrcAlpha;
+    blendState.color.dstFactor = WGPUBlendFactor_OneMinusSrcAlpha;
+    blendState.color.operation = WGPUBlendOperation_Add;
+
+    // Alpha-Settings
+    blendState.alpha.srcFactor = WGPUBlendFactor_Zero;
+    blendState.alpha.dstFactor = WGPUBlendFactor_One;
+    blendState.alpha.operation = WGPUBlendOperation_Add;
+
+    // setup color target
+    WGPUColorTargetState  colorTargetState = {};
+    colorTargetState.format = swapChainFormat;
+    colorTargetState.blend = &blendState;
+    colorTargetState.writeMask = WGPUColorWriteMask_All;
+
+    fragmentState.targets = &colorTargetState;
+
+    pipelineDescriptor.fragment = &fragmentState;
+    pipelineDescriptor.depthStencil = nullptr;
+    pipelineDescriptor.layout = nullptr;
+
+    // MSAA settings
+    pipelineDescriptor.multisample.count = 1;
+    pipelineDescriptor.multisample.mask = ~0u;
+    pipelineDescriptor.multisample.alphaToCoverageEnabled = false;
+
+
+    // Get Pipeline from Pipeline descriptor
+    WGPURenderPipeline pipeline = wgpuDeviceCreateRenderPipeline(device, &pipelineDescriptor);
+
 
 	while (!glfwWindowShouldClose(window)) {
 		glfwPollEvents();
@@ -205,13 +311,15 @@ int main (int, char**) {
 
         ImGui_ImplGlfw_NewFrame();
         ImGui_ImplWGPU_NewFrame();
-        ImGui::NewFrame();
-        ImGui::SetWindowSize(ImVec2(500, 300));
-        ImGui::ShowDemoWindow(); // Show demo window! :)
+//        ImGui::NewFrame();
+//        ImGui::SetWindowSize(ImVec2(500, 300));
+//        ImGui::ShowDemoWindow(); // Show demo window! :)
+//
+//        ImGui::Render();
+//        ImGui_ImplWGPU_RenderDrawData(ImGui::GetDrawData(), renderPass);
 
-        ImGui::Render();
-        ImGui_ImplWGPU_RenderDrawData(ImGui::GetDrawData(), renderPass);
-
+        wgpuRenderPassEncoderSetPipeline(renderPass, pipeline);
+        wgpuRenderPassEncoderDraw(renderPass, 6, 1, 0, 0);
 		wgpuRenderPassEncoderEnd(renderPass);
 		wgpuRenderPassEncoderRelease(renderPass);
 
